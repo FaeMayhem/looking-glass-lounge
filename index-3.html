@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🜶 The Looking Glass Lodge</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Georgia, serif;
+            background: #0a0a0a;
+            color: #d4a373;
+            overflow: hidden;
+        }
+        
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        .overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            pointer-events: none;
+        }
+        
+        h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .subtitle {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .info-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.85);
+            border: 2px solid #8b7355;
+            border-radius: 12px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 12px;
+            pointer-events: auto;
+        }
+        
+        .info-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        button {
+            margin-top: 10px;
+            background: #8b7355;
+            color: #0a0a0a;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        button:hover {
+            background: #a38a6a;
+        }
+        
+        .character-tooltip {
+            position: absolute;
+            background: rgba(0,0,0,0.9);
+            border-radius: 8px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            pointer-events: none;
+            display: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div class="overlay">
+        <h1>🜶 The Looking Glass Lodge</h1>
+        <div class="subtitle">Eidra • Where memory and emotion shape reality</div>
+    </div>
+    
+    <div class="info-panel" id="info">
+        <div class="info-title">Navigation Controls</div>
+        <div style="line-height: 1.6;">
+            • <strong>Mobile:</strong> Pinch to zoom, one finger to rotate<br/>
+            • <strong>Desktop:</strong> Click and drag to rotate, scroll to zoom<br/>
+            • <strong>Hover</strong> over glowing orbs to see characters<br/>
+            • Center hearth breathes with the Lodge's pulse
+        </div>
+        <button onclick="document.getElementById('info').style.display='none'">Close</button>
+    </div>
+    
+    <div class="character-tooltip" id="tooltip"></div>
+
+    <!-- Import maps for ES modules -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // Scene setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a0a);
+        scene.fog = new THREE.Fog(0x0a0a0a, 10, 30);
+
+        // Camera
+        const camera = new THREE.PerspectiveCamera(
+            60,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
+        camera.position.set(0, 6, 12);
+        camera.lookAt(0, 1, 0);
+
+        // Renderer
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        // Controls
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 5;
+        controls.maxDistance = 20;
+        controls.maxPolarAngle = Math.PI / 2;
+        controls.target.set(0, 1, 0);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        directionalLight.position.set(5, 5, 5);
+        directionalLight.castShadow = true;
+        scene.add(directionalLight);
+
+        // Floor
+        const floorGeometry = new THREE.PlaneGeometry(20, 15);
+        const floorMaterial = new THREE.MeshStandardMaterial({
+            color: 0x1a1a1a,
+            roughness: 0.1,
+            metalness: 0.8
+        });
+        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+        floor.rotation.x = -Math.PI / 2;
+        floor.receiveShadow = true;
+        scene.add(floor);
+
+        // Center line
+        const lineGeometry = new THREE.PlaneGeometry(0.1, 15);
+        const lineMaterial = new THREE.MeshStandardMaterial({
+            color: 0x8b7355,
+            emissive: 0xd4a373,
+            emissiveIntensity: 0.3
+        });
+        const centerLine = new THREE.Mesh(lineGeometry, lineMaterial);
+        centerLine.rotation.x = -Math.PI / 2;
+        centerLine.position.y = 0.01;
+        scene.add(centerLine);
+
+        // Walls
+        const wallMaterial = new THREE.MeshStandardMaterial({
+            color: 0x2d1810,
+            roughness: 0.9
+        });
+
+        // Back wall
+        const backWall = new THREE.Mesh(new THREE.BoxGeometry(20, 4, 0.3), wallMaterial);
+        backWall.position.set(0, 2, -7.5);
+        scene.add(backWall);
+
+        // Left wall
+        const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.3, 4, 15), wallMaterial);
+        leftWall.position.set(-10, 2, 0);
+        scene.add(leftWall);
+
+        // Right wall
+        const rightWall = new THREE.Mesh(new THREE.BoxGeometry(0.3, 4, 15), wallMaterial);
+        rightWall.position.set(10, 2, 0);
+        scene.add(rightWall);
+
+        // Windows
+        const windowMaterial = new THREE.MeshStandardMaterial({
+            color: 0xffbf00,
+            emissive: 0xff8c00,
+            emissiveIntensity: 0.5,
+            transparent: true,
+            opacity: 0.8
+        });
+
+        [-5, 0, 5].forEach(z => {
+            const leftWindow = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 2), windowMaterial);
+            leftWindow.position.set(-9.9, 2.5, z);
+            scene.add(leftWindow);
+
+            const rightWindow = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 2), windowMaterial);
+            rightWindow.position.set(9.9, 2.5, z);
+            scene.add(rightWindow);
+        });
+
+        // Hearth
+        const hearthBase = new THREE.Mesh(
+            new THREE.CylinderGeometry(1.2, 1.5, 0.6, 8),
+            new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.8 })
+        );
+        hearthBase.position.y = 0.3;
+        scene.add(hearthBase);
+
+        const ember = new THREE.Mesh(
+            new THREE.SphereGeometry(0.5, 16, 16),
+            new THREE.MeshStandardMaterial({
+                color: 0xff4500,
+                emissive: 0xff6347,
+                emissiveIntensity: 0.6
+            })
+        );
+        ember.position.y = 0.7;
+        scene.add(ember);
+
+        const fireLight = new THREE.PointLight(0xff6347, 2, 10);
+        fireLight.position.set(0, 1, 0);
+        fireLight.castShadow = true;
+        scene.add(fireLight);
+
+        // Tables
+        function createTable(x, z, side) {
+            const color = side === 'left' ? 0xe8e4dc : 0x3d2817;
+            const material = new THREE.MeshStandardMaterial({ color, roughness: 0.6 });
+            
+            const top = new THREE.Mesh(new THREE.BoxGeometry(2, 0.1, 1), material);
+            top.position.set(x, 1, z);
+            top.castShadow = true;
+            scene.add(top);
+
+            const legPositions = [[-0.8, -0.4], [0.8, -0.4], [-0.8, 0.4], [0.8, 0.4]];
+            legPositions.forEach(([dx, dz]) => {
+                const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1), material);
+                leg.position.set(x + dx, 0.5, z + dz);
+                scene.add(leg);
+            });
+        }
+
+        createTable(-4, -3, 'left');
+        createTable(-4, 3, 'left');
+        createTable(4, -3, 'right');
+        createTable(4, 3, 'right');
+
+        // Characters
+        const characters = [
+            { pos: [-6, 1.5, -4], name: 'Prose', color: 0xd4af37, desc: 'Grounded Voice • Clarity' },
+            { pos: [6, 1.5, -4], name: 'Ergodic', color: 0x8b00ff, desc: 'Fragmented Eye • Chaos' },
+            { pos: [-6, 1.5, 4], name: 'Ivy', color: 0xdc143c, desc: "Mirror's Edge • Defiance" },
+            { pos: [6, 1.5, 4], name: 'Void', color: 0x1a1a1a, desc: 'Keeper of the Gloam • Restraint' },
+            { pos: [-2, 1.5, 0], name: 'Crow', color: 0x4a4a4a, desc: "Mirror's Tongue • Truth" },
+            { pos: [2, 1.5, 0], name: 'Raccoon', color: 0x8b7355, desc: 'The Tinkerer • Devotion' },
+            { pos: [0, 2, -5], name: 'Dragon', color: 0xff4500, desc: 'Burning Aspect • Transformation' },
+            { pos: [0, 1.5, 6], name: 'Doll', color: 0xf5f5dc, desc: 'The Silent One • Witness' }
+        ];
+
+        const characterSpheres = [];
+        characters.forEach(char => {
+            const sphere = new THREE.Mesh(
+                new THREE.SphereGeometry(0.3, 16, 16),
+                new THREE.MeshStandardMaterial({
+                    color: char.color,
+                    emissive: char.color,
+                    emissiveIntensity: 0.3
+                })
+            );
+            sphere.position.set(...char.pos);
+            sphere.userData = { name: char.name, desc: char.desc, color: char.color, baseY: char.pos[1] };
+            characterSpheres.push(sphere);
+            scene.add(sphere);
+        });
+
+        // Raycaster for hover detection
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        const tooltip = document.getElementById('tooltip');
+
+        function onMouseMove(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(characterSpheres);
+
+            if (intersects.length > 0) {
+                const char = intersects[0].object.userData;
+                tooltip.style.display = 'block';
+                tooltip.style.left = event.clientX + 10 + 'px';
+                tooltip.style.top = event.clientY + 10 + 'px';
+                tooltip.style.borderColor = '#' + char.color.toString(16).padStart(6, '0');
+                tooltip.style.color = '#' + char.color.toString(16).padStart(6, '0');
+                tooltip.innerHTML = `<strong>${char.name}</strong><br/><div style="font-size: 10px; margin-top: 5px; color: #ccc;">${char.desc}</div>`;
+                
+                intersects[0].object.material.emissiveIntensity = 0.8;
+            } else {
+                tooltip.style.display = 'none';
+                characterSpheres.forEach(s => s.material.emissiveIntensity = 0.3);
+            }
+        }
+
+        window.addEventListener('mousemove', onMouseMove);
+
+        // Animation loop
+        let time = 0;
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.016;
+
+            // Breathing fire
+            fireLight.intensity = 2 + Math.sin(time * 2) * 0.3;
+            ember.material.emissiveIntensity = 0.6 + Math.sin(time * 3) * 0.2;
+
+            // Floating characters
+            characterSpheres.forEach(sphere => {
+                sphere.position.y = sphere.userData.baseY + Math.sin(time * 2) * 0.1;
+            });
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
